@@ -1,2 +1,271 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+Code:
+public class EmailManager {
+    public static void sendMail(String address, String subject, String body) {
+        Messaging.SingleEmailMessage mail = new Messaging.SingleEmailMessage();
+        String[] toAddresses = new String[] {address};
+        mail.setToAddresses(toAddresses);
+        mail.setSubject(subject);
+        mail.setPlainTextBody(body);
+        Messaging.sendEmail(new Messaging.SingleEmailMessage[] { mail });
+    }
+}
+
+String address = 'devsol2020@gmail.com';
+String subject = ' Speaker Confirmation for the Session';
+String body = 'Thank you for speaking at the conference. We really appreciate it';
+EmailManager.sendMail(address, subject, body);
+
+SELECT Id, Name, Description FROM Account WHERE CreatedDate>2005-10-08T01:02:03z
+SELECT Name, Description FROM Account ORDER BY Name DESC nulls first
+SELECT Id, Session_Date__c, Level__c FROM Session__c
+SELECT Id, Name, Session_Date__c, Level__c FROM Session__c WHERE Level__c = 'Beginner'
+SELECT Id, Name ,First_Name__c, Last_Name__c, Email__c FROM speaker__c ORDER BY First_Name__c, Last_Name__c
+SELECT Id, Name, Account.Name, Account.Website, Account.Description  
+FROM Contact
+SELECT Id, Name, SpeakerAssignN__c, SessionAssignN__r.Name, SpeakerAssignN__r.First_Name__c, SpeakerAssignN__r.Last_Name__c 
+FROM Session_Speaker__c
+
+//Create the list of sObjects to insert(all or none, 150 statements governor limit)
+List<Account> acctList = new List<Account>();
+acctList.add(new Account(Name='Acme1'));
+acctList.add(new Account(Name='Acme2'));
+insert acctList;
+
+//Create the list of sObjects to insert (partial success-bulk )
+List<Account> acctList = new List<Account>();
+acctList.add(new Account(Name='sim1'));
+acctList.add(new Account(Name='sim2'));
+//DML statement
+Database.SaveResult[] srList = Database.insert(acctList, false);
+
+//Create the list of sObjects to insert
+Account[] accts =  new List<Account>();
+for(Integer i=0;i<3;i++)
+{
+    Account a = new Account(Name='Acmeri' + i, 
+    BillingCity='San Francisco');
+    accts.add(a);
+}
+Account accountToUpdate;
+	try
+    {
+    insert accts;
+    
+	// Update account Acme2.
+	accountToUpdate = [SELECT BillingCity FROM Account WHERE Name='Acmeri2' AND BillingCity='San Francisco' LIMIT 1];
+	// Update the billing city.
+    accountToUpdate.BillingCity = 'New York';
+	// Make the update call.
+	update accountToUpdate;
+	}
+	catch(DmlException e)
+    {
+    System.debug('An unexpected error has ocurred: ' + e.getMessage());     
+    }
+// Verify that the billing city was updated to New York.
+Account afterUpdate = [SELECT BillingCity FROM Account WHERE Id=:accountToUpdate.Id];
+System.assertEquals('New York', afterUpdate.BillingCity);
+
+
+trigger SendConfEmail on Session_Speaker__c (after insert) {
+for(Session_Speaker__c newItem : trigger.new)
+    //Retrieve session name and time = speaker name and email address
+    Session_Speaker__c sessionSpeaker = 
+        [SELECT SessionAssignN__r.Name,
+            	SessionAssignN__r.Session_Date__c,
+         		SpeakerAssignN__r.First_Name__c,
+         		SpeakerAssignN__r.Last_Name__c,
+         		SpeakerAssignN__r.Email__c
+        FROM Session_Speaker__c WHERE Id=:newItem.Id];
+    
+    // Send confirmation email if know the speaker's email address
+    if (sessionSpeaker.SpeakerAssignN__r.Email__c != null){
+        String address = sessionSpeaker.SpeakerAssignN__r.Email__c;
+        String subject = 'Speaker Confirmation';
+        String message = 'Dear ' + sessionSpeaker.SpeakerAssignN__r.First_Name__c +
+            ',\nYour session "' + SessionAssignN__r.Session_Date__c + ' is confirmed.\n\n' +
+            'Thanks for speaking at the conference!';
+        EmailManager.sendMail(address, subject, message);
+    }
+}
+https://na59.salesforce.com/ /servlet/servlet.FileDownload?file=00Pf4000000stE2EAI
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<apex:page controller="HotelRemoter">
+
+<head>
+<style type="text/css">
+  html { height: 100% }
+  body { height: 100%; margin: 0; padding: 0 }
+  #map-canvas { width:800px;height:600px; }
+</style>
+<script src="https://maps.googleapis.com/maps/api/js?sensor=false"></script>
+<script>
+var map;
+
+function initialize() {
+    var mapOptions = {
+        center: new google.maps.LatLng(37.784173, -122.401557),
+        zoom: 15
+    };
+    map = new google.maps.Map(document.getElementById("map-canvas"), mapOptions);
+    loadHotels();
+}
+function loadHotels() {
+        	Visualforce.remoting.Manager.invokeAction('{!$RemoteAction.HotelRemoter.findAll}',
+                                                        function(result, event){
+                                                            if(event.status){
+                                                                for (var i=0; i<result.length; i++) {
+                                                                    var id = result[i].Id;
+                                                                    var name = result[i].Name;
+                                                                    var lat = result[i].Location__Latitude__s;
+                                                                    var lng = result[i].Location__Longitude__s;
+                                                                    addMarker(id, name, lat, lng);
+                                                            }
+                                                            } else {
+                                                                alert(event.message);
+                                                            }
+                                                        },
+                                                        {escape: true}
+    		);
+}   
+    function addMarker(id, name, lat, lng) {
+    var marker = new google.maps.Marker({
+            position: new google.maps.LatLng(lat, lng),
+            title: name
+    });
+    google.maps.event.addListener(marker, 'click', function(event) {
+        window.top.location = '/' + id;
+    });
+}
+
+google.maps.event.addDomListener(window, 'load', initialize);
+
+</script>
+</head>
+<body>
+  <div id="map-canvas"/>
+</body>
+
+</apex:page>
+
+@RestResource(urlMapping='/FieldCase/*')
+global with sharing class RESTCaseController {
+
+    @HttpGet
+    global static List<Case> getOpenCases()
+    {
+        String companyName=RestContext.request.params.get('companyName');
+        Account company=[select Id, name, BillingState from Account where name=:companyName];
+        List <Case> cases=[select id, subject, status, ownerId, Owner.Name from case where AccountId=:company.Id];
+        return cases;
+    }
+    @HttpDelete
+    global static String deleteOldCases(){
+        String companyName = RestContext.request.params.get('companyName');
+        Account company = [Select ID, Name, BillingState from Account where Name = :companyName];
+        List<Case> cases = [SELECT Id, Subject, Status, OwnerId, Owner.Name from Case WHERE AccountId =: company.Id AND Status = 'Closed'];
+        delete cases;
+        return 'Closed Cases Delete';
+    }
+    @HttpPost
+    global static String createNewAccount(String acctName, String descr) {
+        Account a = new Account();
+        a.Name=acctName;
+        a.Description=descr;
+        insert a;
+        return 'Done';
+    }
+    @HttpPatch
+    global static String updateCase(String caseId, String caseStatus, String caseNote) {
+        Case companyCase = [SELECT Id, Subject, Status, Description from Case WHERE Id =: caseId];
+        
+        companyCase.Status = caseStatus;
+        companyCase.Description += caseNote;
+        update companyCase;
+        
+        return 'Case Updated';
+    }
+}
+
+
+/*****************************************************
+Description - Sample Apex REST service with GET method
+Author - Pablo Ruiz
+******************************************************/
+
+@RestResource(urlMapping='/v1/accounts/*')
+global with sharing class AccountRESTService_V1 {
+	@HttpGet
+    global static Account doGet() {
+        RestRequest req = RestContext.request;
+        RestResponse res = RestContext.response;
+        String accountId = req.requestURI.substring(req.requestURI.lastIndexOf('/')+1);
+        Account result = [SELECT Id, Name, Phone, Website, BillingState FROM Account WHERE Id = :accountId];
+        return result;
+    }
+}
+
+
+/*****************************************************
+Description - Sample Apex REST service with GET method
+Author - Pablo Ruiz
+******************************************************/
+
+@RestResource(urlMapping='/v2/accounts/*')
+global with sharing class AccountRESTService_V2 {
+	@HttpGet
+    global static AccountWrapper doGet() {
+        RestRequest req = RestContext.request;
+        RestResponse res = RestContext.response;
+        AccountWrapper response = new AccountWrapper();
+        
+        String accountId = req.requestURI.substring(req.requestURI.lastIndexOf('/')+1);
+        
+        List<Account> result = [SELECT Id, Name, Phone, Website FROM Account WHERE Id = :accountId];
+  
+        if(result != null && result.size()>0 ) {
+            response.acct = result[0];
+            response.status = 'Success';
+            response.message='Account found';
+        }
+        else {
+            response.acct =null;
+            response.status = 'Error';
+            response.message = 'This account could not be found, please try again.';
+            res.StatusCode = 404;
+        }
+        
+        return response;
+    }
+    
+    global class AccountWrapper {
+        public Account acct;
+        public String status;
+        public String message;
+        
+        public AccountWrapper(){}
+    }
+}
+
+/services/apexrest/v1/accounts/001f400000BScgd
