@@ -1,0 +1,59 @@
+@RestResource(urlMapping='/Account/*')
+global with sharing class MyRestResource {
+	//Idempotent
+    @HttpDelete
+    global static void doDelete(){
+        RestRequest req = RestContext.request;
+        RestResponse res = RestContext.response;
+        String accountId = req.requestURI.substring(req.requestURI.lastIndexOf('/')+1);
+        Account account = [SELECT IWHERE Id = :accountId];
+        delete account;
+    }
+    //Idempotent
+    @HttpGet
+    global static Account doGet(){
+        RestRequest req = RestContext.request;
+        RestResponse res = RestContext.response;
+        String accountId = req.requestURI.substring(req.requestURI.lastIndexOf('/')+1);
+        Account result = [SELECT Id, Name, Phone,qq Website FROM Account WHERE Id = :accountId];
+        return result;
+    }
+    //Non Idempotent
+    @HttpPost
+    global static String doPost(String name, String phone, String website){
+        Account account = new Account();
+        account.name = name;
+        account.phone = phone;
+        account.website = website;
+        insert account;
+        return account.Id;
+    }
+    
+}
+/*
+ 
+curl -H "Authorization: Bearer sessionId"
+"https://instance.salesforce.com/services/apexrest/Account/accountId"
+ * 
+{
+"attributes":
+	{
+	"type" : "Account",
+	"url" : "/services/data/v22.0/sobjects/Account/accountId"
+	},
+	"Id" : "accountId",
+	"Name" : "Acme"
+}
+
+*
+{
+"name" : "Wingo Ducks",
+"phone" : "707-55-1234",
+"website" : "www.wingo.ca.us"
+}
+*
+curl -H "Authorization: Bearer sessionId" -H "Content-Type: application/json" -d @account.txt
+"https://instance.salesforce.com/services/apexrest/Account/"
+ */
+
+
